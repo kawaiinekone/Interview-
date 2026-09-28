@@ -279,4 +279,4 @@ Writing down what tripped me up before it was explained by my senior
 
 4. **Forwarding feels like cheating the clock:**
    * *What I thought:* If instruction 1 writes to a register in Stage 3, instruction 2 has to wait until instruction 1 is totally done.
-   * *What clicked:* Takshaka just runs a physical bypass wire straight from the output of Stage 3 back to the input of Stage 2. It’s like handing a tool directly to your teammate the second you finish with it instead of putting it back in the toolbox first.
+   * - Takshaka just runs a physical bypass wire straight from the output of Stage 3 back to the input of Stage 2. It’s like handing a tool directly to your teammate the second you finish with it instead of putting it back in the toolbox first.
