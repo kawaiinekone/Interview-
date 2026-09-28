@@ -261,21 +261,21 @@ Takshaka is synthesized into physical silicon using the open-source OpenROAD flo
 ---
 ---
 
-## 10. Things That Confused Me (My Beginner Lightbulb Moments)
+## 10. Things That Confused Me
 
-Writing down what tripped me up before it clicked:
+Writing down what tripped me up before it was explained by my senior
 
 1. **Why is `x0` hardwired to zero?**
    * *What I thought:* "Why waste one of our 32 precious registers on a number that never changes?"
-   * *What clicked:* It actually saves hardware. Instead of needing a dedicated `copy` or `clear` instruction, RISC-V just does `addi rd, rs, 0`. `x0` acts like an anchor that lets one simple adder instruction do five different jobs.
+   * - It actually saves hardware. Instead of needing a dedicated `copy` or `clear` instruction, RISC-V just does `addi rd, rs, 0`. `x0` acts like an anchor that lets one simple adder instruction do five different jobs.
 
 2. **Why does Takshaka need a branch predictor if it only has 3 stages?**
    * *What I thought:* Branch prediction was only for giant desktop CPUs like Intel Core i7.
-   * *What clicked:* Even with just 3 stages, every time a loop repeats or an `if` condition checks out, the CPU has already fetched the wrong next instruction. Losing 1 cycle doesn't sound like much, but inside a 10,000-iteration loop, that's 10,000 wasted clock ticks. The 256-entry gshare table guessing correctly means loops run without constant stumbling.
+   * - Even with just 3 stages, every time a loop repeats or an `if` condition checks out, the CPU has already fetched the wrong next instruction. Losing 1 cycle doesn't sound like much, but inside a 10,000-iteration loop, that's 10,000 wasted clock ticks. The 256-entry gshare table guessing correctly means loops run without constant stumbling.
 
 3. **Load/Store vs. Python Variables:**
    * *What I thought:* Coming from Python, you think `x = a + b` just happens in memory.
-   * *What clicked:* In hardware, RAM is physically far away across a bus. You can't just "do math" in RAM. You have to walk over, pick up the values with `lw`, bring them into local registers, add them in the ALU, and walk them back with `sw`. 
+   * - In hardware, RAM is physically far away across a bus. You can't just "do math" in RAM. You have to walk over, pick up the values with `lw`, bring them into local registers, add them in the ALU, and walk them back with `sw`. 
 
 4. **Forwarding feels like cheating the clock:**
    * *What I thought:* If instruction 1 writes to a register in Stage 3, instruction 2 has to wait until instruction 1 is totally done.
