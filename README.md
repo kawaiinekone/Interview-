@@ -10,6 +10,7 @@
 ---
 
 ## 1. Executive Summary
+<img width="1600" height="1035" alt="WhatsApp Image 2026-09-28 at 10 47 56 PM" src="https://github.com/user-attachments/assets/e7de081d-c1d4-4669-a6d3-8597d83b5372" />
 
 ### What is Takshaka?
 **Takshaka** is an open-source, 32-bit computer processor core developed by OR5 Labs under the open-source MIT license. It is designed around the modern **RISC-V Instruction Set Architecture (ISA)**.
