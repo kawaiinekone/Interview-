@@ -206,7 +206,11 @@ Takshaka implements the **RV32IMACB_Zicsr_Zcb_Zbc** feature profile:
 
 ## 8. Benchmark Evaluation & Performance Metrics
 
-On our laboratory's Verilator RTL simulation benchmarks:
+Core performance is evaluated using the standardized **CoreMark / MHz** metric to isolate architectural pipeline efficiency from clock frequency. All values are derived from Verilator RTL simulations (1,000 iterations; 100 iterations for 3-stage cores)
+
+### 8.1 Performance Across Pipeline Architectures
+
+<img width="972" height="753" alt="photo_6181730409364788170_y" src="https://github.com/user-attachments/assets/98309f02-d1a3-4260-b14f-37cd78c3bad2" />
 
 ```
 Benchmark Evaluation (CoreMark / MHz across Pipeline Architectures):
@@ -220,7 +224,22 @@ Benchmark Evaluation (CoreMark / MHz across Pipeline Architectures):
 1. **Pipelined Throughput vs. Multicycle:** Unlike multicycle cores that take 3 to 4 cycles per instruction, Takshaka retires close to 1 instruction per cycle on standard code.
 2. **Low Branch Penalty vs. 5-Stage:** CoreMark code is dense with conditional branches and loops. In a 5-stage core, branch mispredictions flush multiple stages. In Takshaka, branches resolve in Stage `X`, meaning a misprediction flushes only Stage `F` (a 1-cycle penalty).
 3. **Zero Load-Use Stalls:** Forwarding from `W` to `X` prevents pipeline bubbles during memory-load dependencies.
+---
 
+### 8.2 Architectural Baseline: Lab Cores vs. Industry
+<img width="649" height="618" alt="photo_6183549370964316874_x" src="https://github.com/user-attachments/assets/b576c78a-861b-4c6e-ac60-afeee40d434b" />
+* **Industry Baseline Context:** While Takshaka achieves 2.68 CoreMark/MHz through 3-stage pipelining, the lab's baseline multicycle cores (Agni, Surya, Kavacha) already outperform industry reference models like PicoRV32 (0.5531 CM/MHz) by up to 2.58× through optimized state-machine transitions[cite: 5, 10, 13]. Takshaka builds upon these datapath optimizations by introducing pipelined concurrency[cite: 6, 10].
+
+### 8.3 A Beginner's Observation: The Missing "Wake-Up" Benchmark
+
+Standard benchmarks like CoreMark test a core while it is running at 100% load continuously. 
+
+However, in real-world embedded devices (like IoT sensors or smart appliances), processors spend most of their time idle or asleep to save power, waking up only when an interrupt or sensor signal arrives.
+
+#### The Suggestion: Interrupt Wake-Up Latency
+A valuable real-world test for Takshaka would be measuring **Wake-Up Latency**:
+* How many clock cycles does it take from an external signal arriving to the processor executing the first instruction of the handler?
+* Because Takshaka has a short 3-stage pipeline, it should theoretically wake up and start executing instructions faster than deeper 5-stage cores. Testing wake-up cycle counts would highlight its real-world responsiveness in low-power embedded tasks.
 ---
 
 ## 9. Verification & Silicon Physical Design Flow
@@ -240,3 +259,24 @@ Takshaka is synthesized into physical silicon using the open-source OpenROAD flo
 6. **GDSII Generation:** Emits final layout masks ready for foundry manufacturing.
 
 ---
+---
+
+## 10. Things That Confused Me (My Beginner Lightbulb Moments)
+
+Writing down what tripped me up before it clicked:
+
+1. **Why is `x0` hardwired to zero?**
+   * *What I thought:* "Why waste one of our 32 precious registers on a number that never changes?"
+   * *What clicked:* It actually saves hardware. Instead of needing a dedicated `copy` or `clear` instruction, RISC-V just does `addi rd, rs, 0`. `x0` acts like an anchor that lets one simple adder instruction do five different jobs.
+
+2. **Why does Takshaka need a branch predictor if it only has 3 stages?**
+   * *What I thought:* Branch prediction was only for giant desktop CPUs like Intel Core i7.
+   * *What clicked:* Even with just 3 stages, every time a loop repeats or an `if` condition checks out, the CPU has already fetched the wrong next instruction. Losing 1 cycle doesn't sound like much, but inside a 10,000-iteration loop, that's 10,000 wasted clock ticks. The 256-entry gshare table guessing correctly means loops run without constant stumbling.
+
+3. **Load/Store vs. Python Variables:**
+   * *What I thought:* Coming from Python, you think `x = a + b` just happens in memory.
+   * *What clicked:* In hardware, RAM is physically far away across a bus. You can't just "do math" in RAM. You have to walk over, pick up the values with `lw`, bring them into local registers, add them in the ALU, and walk them back with `sw`. 
+
+4. **Forwarding feels like cheating the clock:**
+   * *What I thought:* If instruction 1 writes to a register in Stage 3, instruction 2 has to wait until instruction 1 is totally done.
+   * *What clicked:* Takshaka just runs a physical bypass wire straight from the output of Stage 3 back to the input of Stage 2. It’s like handing a tool directly to your teammate the second you finish with it instead of putting it back in the toolbox first.
