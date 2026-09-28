@@ -9,7 +9,7 @@
 
 ---
 
-## 1. Executive Summary & Plain-English Overview
+## 1. Executive Summary
 
 ### What is Takshaka?
 **Takshaka** is an open-source, 32-bit computer processor core developed by OR5 Labs under the open-source MIT license. It is designed around the modern **RISC-V Instruction Set Architecture (ISA)**.
