@@ -102,7 +102,7 @@ Based on the official RTL implementation (`rtl/takshaka_core.sv`), the core is d
 * **RVC Expander (`takshaka_rvc.sv`):** Sits directly in the fetch path. It inspects incoming 16-bit instructions (C and Zcb extensions) and translates them into equivalent 32-bit instructions before passing them to the decoder.
 * **Fetch Control:** Manages instruction alignment. If a 32-bit instruction straddles across a word boundary, the fetch controller coordinates a second beat. It also halts instruction fetching during multi-cycle stalls (such as division or misaligned memory access).
 
-* in simpler words: ### 1. Branch Predictor Subsystem (The Weather Forecast Team)
+  -**In simpler words: ### 1. Branch Predictor Subsystem (The Weather Forecast Team)**
 
 When a program hits an `if-else` condition or a loop, the CPU doesn't want to freeze and wait to find out which way it goes. It uses three small helper tools to make a fast guess:
 
