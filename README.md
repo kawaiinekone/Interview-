@@ -187,12 +187,29 @@ The Fetch Controller makes sure instructions enter the pipeline cleanly without 
 * **Register File:** Contains thirty-two 32-bit registers (`x0` through `x31`). Provides two independent combinational read ports (for `rs1` and `rs2`) and one synchronous write port written from the Writeback (`W`) stage.
 * **ALU & Branch Unit:** Executes standard integer arithmetic, logic operations, bit-manipulation extensions (Zba, Zbb, Zbs, Zbc), branch comparisons, and memory address generation (AGU).
 * **Multi-Cycle Multiplier / Divider Unit (`takshaka_muldiv.sv`):**
-  * Multiplication executes in a single pipelined cycle.
-  * Division executes iteratively across 32 shift-subtract steps plus a sign-correction cycle.
-  * While active, this unit asserts a stall line back to the Fetch stage.
-* **CSR & Trap Unit:** Manages Control and Status Registers (`Zicsr`), performance counters (`Zihpm`), and resolves exceptions/interrupts. All branch directions, traps, and jump targets resolve here.
-* **Redirect / Pipeline Flush:** If an instruction in `X` determines that a branch was mispredicted or an interrupt occurred, it asserts a redirect signal to the PC and flushes the single younger instruction currently in Stage `F` (costing exactly 1 bubble cycle).
-* **SECURE Modules (Optional Build):** Includes Physical Memory Protection (8 PMP regions supporting TOR, NA4, and NAPOT addressing) and hardware debug watchpoint triggers (Sdtrig).
+  * Multiplication executes in a single pipelined cycle--->  **Fast Multiplication (1 Cycle):Multiplying numbers is built out of fast hardware logic gates (array multipliers), so standard multiplications finish in a single clock cycle without holding up the line.**
+  * Division executes iteratively across 32 shift-subtract steps plus a sign-correction cycle---> **Slow Division (32 Steps): Division is fundamentally harder in hardware. Just like doing long division by hand on paper (guess digit, subtract, shift, repeat), the hardware runs an iterative loop: it shifts and subtracts bit by bit across 32 clock ticks (one tick for each bit in a 32-bit integer), plus 1 extra tick to fix the positive/negative sign.**
+  * While active, this unit asserts a stall line back to the Fetch stage---> **Stalling the Front Door:Because division takes 33 clock ticks inside Stage X, new instructions cannot keep pouring into the pipeline. The divider sends a "freeze" signal back to Stage F (Fetch), telling it to pause until the math is finished.**
+ 
+  
+* **CSR & Trap Unit:** Manages Control and Status Registers (`Zicsr`), performance counters (`Zihpm`), and resolves exceptions/interrupts. All branch directions, traps, and jump targets resolve here--->
+  **Think of this as the Control Room & Emergency Dispatcher inside the chip.
+  CSRs (The Dashboard Gauges):Control and Status Registers are special memory slots that monitor how the CPU is running. They store values like how many clock cycles have ticked, CPU error flags, or current power settings.
+  raps & Interrupts (Emergency Sirens):If an illegal instruction appears, a timer alarm goes off, or an external device presses a hardware button, this unit intercepts it. It halts standard execution and forces the CPU to jump to special handler code.
+  Resolves in Stage X: All decisions about whether a condition was met, whether an interrupt must take over, or where a jump points to are finalized right here in Stage X.**
+
+  
+* **Redirect / Pipeline Flush:** If an instruction in `X` determines that a branch was mispredicted or an interrupt occurred, it asserts a redirect signal to the PC and flushes the single younger instruction currently in Stage `F` (costing exactly 1 bubble cycle)--->
+**Think of this as Hitting the Undo Button on a False Start.
+  The Problem: While Stage X is checking an if-else condition, Stage F has already guessed and pulled in the next instruction so the pipeline doesn't sit idle.
+  The Catch:If Stage X calculates the condition and realizes, "Wait, the branch predictor guessed wrong! We took the wrong path," it immediately signals the PC Register in Stage F with the correct address.
+  The 1-Cycle Flush:The wrong instruction currently sitting in Stage F is discarded (turned into a blank "bubble" or nop), and the core begins fetching from the right path on the very next cycle. Because Takshaka has only 3 stages, throwing away that single wrong fetch costs only 1 wasted clock tick.**
+
+  
+* **SECURE Modules (Optional Build):** Includes Physical Memory Protection (8 PMP regions supporting TOR, NA4, and NAPOT addressing) and hardware debug watchpoint triggers (Sdtrig)--->
+  **Think of this as a Security Guard & Security Camera built directly into the silicon.
+  PMP (Physical Memory Protection - The Security Guard):In embedded devices, you don't want a regular user application or a bugged task to accidentally overwrite critical operating system code or read private encryption keys.
+  Triggers / Sdtrig (The Security Camera / Wiretap):These are hardware hooks for debuggers. An engineer can tell the chip: "Alert me the exact second the program counter hits address 0x8000 or the moment someone writes data into variable X." It allows debugging without needing to alter software code.**
 
 ### Stage 3: W - MEMORY / WRITEBACK (Data Memory Access & Retirement)
 * **Load / Store Unit:** Drives the external data memory interface (`dmem_addr`, `dmem_wdata`, `dmem_rdata`, `dmem_be`).
