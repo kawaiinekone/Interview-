@@ -102,6 +102,85 @@ Based on the official RTL implementation (`rtl/takshaka_core.sv`), the core is d
 * **RVC Expander (`takshaka_rvc.sv`):** Sits directly in the fetch path. It inspects incoming 16-bit instructions (C and Zcb extensions) and translates them into equivalent 32-bit instructions before passing them to the decoder.
 * **Fetch Control:** Manages instruction alignment. If a 32-bit instruction straddles across a word boundary, the fetch controller coordinates a second beat. It also halts instruction fetching during multi-cycle stalls (such as division or misaligned memory access).
 
+* in simpler words: ### 1. Branch Predictor Subsystem (The Weather Forecast Team)
+
+When a program hits an `if-else` condition or a loop, the CPU doesn't want to freeze and wait to find out which way it goes. It uses three small helper tools to make a fast guess:
+
+* **256-Entry gshare BHT (The Decision Guesser):**
+* **What it does:** Guesses **"Yes (Take the Jump)"** or **"No (Keep going straight)"**.
+
+
+* **How it works:** It remembers the last 8 branches the program took (the 8-bit history). It mixes that history with the current instruction's address using an XOR gate to look up a 2-bit score counter. If the counter says "it jumped the last few times," the CPU bets it will jump again.
+
+
+
+
+* **64-Entry BTB (The Address Shortcut):**
+* **What it does:** Even if you guess "Yes, jump," you still need to know **where** to jump.
+
+
+* **How it works:** It is a small speed-dial address book holding 64 jump destinations. Instead of waiting for an adder to calculate the destination address, the CPU grabs it instantly from the BTB cache.
+
+
+
+
+* **8-Entry RAS (The Return Bookmark Stack):**
+* **What it does:** Handles function calls and returns (`ret`).
+
+
+* **How it works:** When code calls a function, it pushes the return address onto a mini 8-slot stack (like stacking plates). When the function ends, it pops the top plate off to return instantly without calculating where it came from.
+
+
+
+
+* **Training Feedback (Learning from Mistakes):**
+* The actual branch math is confirmed later in **Stage X (Execute)**.
+
+
+* If Stage X sees that the guess was correct, it reinforces the counter. If the guess was wrong, Stage X corrects the table so the predictor makes a better guess next time.
+
+
+
+
+
+---
+
+### 2. RVC Expander (The Unpacker at the Front Door)
+
+* Standard RISC-V instructions are **32 bits wide**, but compressed instructions are **16 bits wide** (zipped to take up less memory).
+
+
+* Instead of forcing the main Decoder in Stage X to handle two different sizes, the **RVC Expander sits right in Stage F (Fetch)**.
+
+
+* The moment a 16-bit compressed instruction enters the chip, the expander immediately unzips it into a standard 32-bit instruction. By the time it reaches Stage X, the decoder only ever has to deal with regular 32-bit instructions.
+
+
+
+---
+
+### 3. Fetch Control (The Traffic Cop)
+
+The Fetch Controller makes sure instructions enter the pipeline cleanly without crashing into memory limits:
+
+* **Word-Straddling (The Overlapping Book Page):**
+* Memory is read in neat 4-byte (32-bit) chunks.
+
+
+* If you mix 16-bit and 32-bit instructions, a 32-bit instruction might end up split in half: its first 2 bytes sit at the end of Chunk 1, and its remaining 2 bytes sit at the start of Chunk 2.
+
+
+* The Fetch Controller spots this, takes two quick reads ("two beats"), glues the two halves together, and feeds the full instruction into the pipeline.
+
+
+
+
+* **Halting on Stalls (The Red Light):**
+* If the CPU starts a long operation—like a 32-cycle hardware division or a 2-step misaligned memory load—the rest of the processor must pause.
+
+
+* The Fetch Controller raises a red light and temporarily freezes Stage F so it doesn't keep pulling in new instructions until the busy unit finishes.
+
 ### Stage 2: X - EXECUTE (Decode, Arithmetic, and Control Resolution)
 * **Instruction Decoder (`takshaka_decode.sv`):** Decodes full RV32IMACB, Zbc, and Zcb instruction profiles.
 * **Immediate Generator:** Extracts and sign-extends 12-bit, 20-bit, or branch offsets across standard I, S, B, U, and J instruction formats.
