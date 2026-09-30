@@ -84,3 +84,4 @@ Initial State: x1 = 15 (0x0000000F), x2 = 25 (0x00000019), PC = 0x00000008
 Machine Instruction: 0x002081B3.
 
 
+![Concrete Hardware Propagation](./1790743607737.png)
