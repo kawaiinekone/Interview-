@@ -84,21 +84,3 @@ Initial State: x1 = 15 (0x0000000F), x2 = 25 (0x00000019), PC = 0x00000008
 Machine Instruction: 0x002081B3.
 
 
-|+-----------------------------------------------------------------------------------------------------------------------+
-|                               CONCRETE HARDWARE PROPAGATION FOR: add x3, x1, x2                                       |
-+---------------------+---------------------------------------------------------+---------------------------------------+
-| Subsystem           | Hardware Action & Internal Wires                        | Physical Output Values                |
-+---------------------+---------------------------------------------------------+---------------------------------------+
-| PC Register         | Outputs address onto memory bus                         | imem_addr = 0x00000008                |
-| PC Adder            | Dedicated adder calculates sequential advance           | pc_plus_4 = 0x0000000C                |
-| Instruction Memory  | Combinational SRAM array performs word lookup           | imem_rdata = 0x002081B3               |
-| Instruction Decoder | Slices machine word into control and index bitfields    | opcode = 0110011, rd = 3,             |
-|                     |                                                         | rs1 = 1, rs2 = 2, funct3 = 000        |
-| Register File       | Read ports output contents of registers x1 and x2       | rf_rdata1 = 15, rf_rdata2 = 25        |
-| ALU Input MUX       | is_r_type selects register value instead of immediate   | alu_in2 = rf_rdata2 (25)              |
-| 32-bit ALU Engine   | Parallel adder computes: 15 + 25                        | alu_result = 40 (0x00000028)          |
-| Writeback MUX       | is_lw is 0; selects alu_result path over data memory    | wb_data = 40 (0x00000028)             |
-| Rising Clock Edge   | Synchronous flip-flops latch values across the core:    |                                       |
-|                     | - Register File: rf[3] <= wb_data                       | Register x3 commits 40                |
-|                     | - PC Register:   pc    <= pc_plus_4                     | PC commits 0x0000000C                 |
-+---------------------+---------------------------------------------------------+---------------------------------------+
