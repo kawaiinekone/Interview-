@@ -8,6 +8,9 @@ This guide explains the Takshaka processor core, made by OR5 Labs (open source, 
 
 1. What is Takshaka?
 
+Takshaka is an open-source, 32-bit computer processor core developed by OR5 Labs under the open-source MIT license. It is designed around the modern RISC-V Instruction Set Architecture (ISA).
+
+
 CPUs come in two extremes today:
 
 1. Tiny, simple cores — cheap and low power, but slow. Each instruction takes 3–4 clock cycles because one unit does everything step by step (a multicycle core, like their Agni core).
