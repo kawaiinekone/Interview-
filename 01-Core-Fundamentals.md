@@ -1,421 +1,272 @@
-# 01 - Hardware Fundamentals, Real-Life Mental Models & Datapath Walkthrough
-
-## 1. What is RTL (Register Transfer Level)?
-
-RTL stands for:
-```text
-Register Transfer Level
-```
-
-In plain words:
-> **RTL describes what physical state is retained in silicon flip-flops, where voltages travel across conductive copper traces, and how logic gates transform those bit patterns between clock edges.**
-
-### The Real-Life Analogy: The Assembly Line Factory
-Consider an industrial manufacturing workshop:
-* **Workers at workbenches (Combinational Logic):** They take raw items, cut them, weld them, or drill holes. They hold nothing overnight; if you stop feeding them materials, they produce nothing.
-* **Storage Bins / Lockers (Registers):** Stable shelves that hold components securely.
-* **The Whistle / Shift Bell (Clock Signal):** At the sound of the bell, workers grab raw parts from Bin A, process them across the bench, and deposit the finished item into Bin B.
-
-```text
-Software Program (Python / C / Java)
-              ↓
-   "Tell the factory what product to build"
-              ↓
-Assembly Language (RISC-V ISA)
-              ↓
-   add x5, x6, x7  (A standardized work ticket)
-              ↓
-RTL (SystemVerilog / Verilog Hardware Description)
-              ↓
-   The physical blueprint specifying the benches, conveyor tracks, and storage bins
-```
-
-* **Software** is an abstract sequence of algorithmic operations executed by an underlying host.
-* **RTL** is a structural description of digital hardware circuits synthesized into silicon gates, interconnects, and flip-flops.
+Hardware Fundamentals Explained Simply
+RTL, Mental Models, and a Full Datapath Walkthrough — in plain words
 
 ---
 
-## 2. What Does "Register Transfer" Actually Mean?
+1. What is RTL?
 
-The term identifies the atomic loop of synchronous digital design:
+RTL = Register Transfer Level.
 
-### 1. Register
-A physical register is a parallel bank of edge-triggered D flip-flops that holds binary voltages (0V ground or nominal Vdd):
-```text
+In plain words: RTL is a way of describing hardware by saying what data sits in which storage (registers), and how that data moves and gets transformed between clock ticks. It's written in languages like Verilog/SystemVerilog, and tools turn that description into real silicon — flip-flops, logic gates, and copper wires.
+
+The factory analogy
+
+Imagine a manufacturing workshop:
+
+- Workers at benches = combinational logic. They cut, weld, drill. They hold nothing overnight — stop feeding them and they produce nothing.
+- Storage bins = registers. Shelves that safely hold parts.
+- The shift bell = the clock. When the bell rings, workers grab parts from Bin A, work on them, and drop the finished item into Bin B.
+
+How software becomes hardware
+
+```
+Software (Python / C / Java)
+   → "tell the factory what to build"
+Assembly (RISC-V)
+   → add x5, x6, x7  (a standardized work ticket)
+RTL (SystemVerilog)
+   → the physical blueprint: which benches, which bins, which conveyor belts
+```
+
+- Software = a list of operations for a machine to perform.
+- RTL = a structural description of a circuit, which gets synthesized into actual gates and flip-flops on a chip.
+
+---
+
+2. What does "Register Transfer" actually mean?
+
+It's the basic loop all digital hardware repeats forever:
+
+1. Register — a row of D flip-flops holding a binary value:
+
+```
 Register A = 10 (0x0000000A)
 Register B = 20 (0x00000014)
 ```
 
-### 2. Transfer
-Transfer is the directed movement of digital electrical charges across metal bus tracks through switching logic into another register:
+2. Transfer — data moves across wires through logic into another register:
 
-```text
-Register A (10) ────┐
-                    ├──► [ ALU: Carry-Lookahead Adder ] ────► (30) ────► Register C
-Register B (20) ────┘
+```
+A (10) ──┐
+         ├──► [ ALU adder ] ──► (30) ──► Register C
+B (20) ──┘
 ```
 
-The perpetual hardware execution sequence:
-```text
-State Storage (Source Registers)
-       ↓
-Data Bus Propagation (Metal Conductors)
-       ↓
-Combinational Processing (ALU / Shifters / Logic Gates)
-       ↓
-Writeback Bus Routing (Multiplexers)
-       ↓
-State Latching (Destination Registers on posedge clk)
+The full cycle:
+
+```
+state storage (source registers)
+  → travel along wires
+  → combinational logic does the work (ALU, shifters, gates)
+  → result routed to the destination
+  → destination register latches it on the rising clock edge
 ```
 
-This cyclic transfer of binary words defines the **Register Transfer Level**.
+That's it. That's the "register transfer level" — data living in registers, moving between them on each clock tick.
 
 ---
 
-## 3. Combinational Logic vs. Sequential Logic
+3. Combinational vs Sequential Logic
 
-Every digital microarchitecture is divided into two distinct circuit domains:
+Every processor is built from these two kinds of circuits.
 
-```text
-              ┌────────────────────────────────────────────────────────┐
-              │               THE DIGITAL PROCESSOR CORE               │
-              └───────────────────────────┬────────────────────────────┘
-                                          │
-                  ┌───────────────────────┴────────────────────────┐
-                  ▼                                                ▼
-        Combinational Logic                             Sequential Logic
-        (Stateless / Immediate Propagation)             (Stateful / Clock Synchronized)
+Combinational logic — the light switch
+
+- Output depends only on the present inputs, after a tiny electrical delay.
+- No memory. Nothing is stored.
+- Real-life example: a wall switch. Flip it → light on instantly. Off → dark instantly.
+- In a CPU: adders, decoders, multiplexers, sign-extension blocks.
+
+```
+A (10) ──┐
+         ├──► [ adder ] ──► 30
+B (20) ──┘     change A to 15 → output becomes 35 automatically
 ```
 
-### Combinational Logic: The Light Switch Matrix
-* Output voltages depend directly and immediately on present input voltages, modulated only by gate propagation delays.
-* The circuit contains no feedback storage or memory.
-* **Real-Life Example:** A set of mechanical wall switches configured in parallel. Flip switch A, and the bulb illuminates instantly; turn it off, and it goes dark immediately.
-* **CPU Implementations:** Arithmetic adders, decoders, sign-extension blocks, multiplexers (MUX).
+Sequential logic — the camera shutter
 
-```text
-Input A (10) ───┐
-                ├──► [ Combinational Adder Array ] ───► Result Output (30)
-Input B (20) ───┘
+- Stores data, and only changes state on a clock edge.
+- Real-life example: a camera. The scene changes constantly, but the shutter only captures a frame at the instant it fires. That frozen frame stays stable until the next shot.
+- In a CPU: the Program Counter, the register file, pipeline latches.
+
 ```
-*If Input A fluctuates from 10 to 15, the output changes to 35 after the electrical signals propagate through the adder's logic gates.*
-
-### Sequential Logic: The Camera Shutter
-* Stores and stabilizes binary data across discrete intervals.
-* State transitions occur strictly when triggered by an active timing signal (the clock edge).
-* **Real-Life Example:** A photographer taking snapshots. While the shutter is closed, subjects move around unpredictably. When the shutter fires (the clock tick), the camera freezes the scene into a permanent frame until the next exposure.
-* **CPU Implementations:** Program Counter (PC), General-Purpose Registers (`x0` through `x31`), Pipeline Latches.
-
-```text
-                     ┌─────────────────────────────┐
-Data Input (30) ────►│ Physical D Flip-Flop Array  │────► Stored Output Q (Stable)
-                     └──────────────┬──────────────┘
-                                    ▲
-         Active Clock Edge: ────────┘ (Latches input only on rising edge)
+data in (30) ──► [ flip-flop ] ──► stable output Q
+                     ▲
+                     └── only updates on the rising clock edge
 ```
+
+One-line summary: combinational logic computes; sequential logic remembers.
 
 ---
 
-## 4. The Digital Clock: Orchestrating Silicon Propagation
+4. The Clock — the metronome of the chip
 
-Digital processors rely on synchronous timing signals:
+```
+        one clock period
+      |<-------------->|
+      ┌───────┐       ┌───────┐
+      │ HIGH  │       │ HIGH  │
+──────┘       └───────┘       └────
+      ▲               ▲
+   rising edge    rising edge
 
-```text
-       Clock Period (Tclk)
-      |<─────────────────────────>|
-      ┌─────────────┐             ┌─────────────┐             ┌─────────────┐
-      │  Logic High │             │  Logic High │             │  Logic High │
-──────┘             └─────────────┘             └─────────────┘             └─────
-      ▲                           ▲                           ▲
-  Rising Edge 1               Rising Edge 2               Rising Edge 3
-  (Time t = 0ns)              (Time t = 10ns)             (Time t = 20ns)
+
 ```
 
-### The Metronome Analogy
-Musicians in an orchestra match tempo against a conductor's baton:
-* **During the interval between ticks:** Electrical signals ripple through silicon gates, switching between high and low voltages. Internal nets experience intermediate electrical noise and propagation delay.
-* **On the sharp rising edge:** Transistor gates settle into valid digital logic states (0 or 1) across setup-time windows, and sequential storage elements latch the inputs.
+Metronome analogy: musicians stay in time with the conductor's beat.
+
+- Between ticks: electrical signals ripple through gates, values are changing, wires are noisy and "in flight."
+- On the rising edge: everything settles to a clean 0 or 1, and every register latches its new value at the same instant.
+
+The clock period must be long enough for the slowest signal to finish traveling. That single rule decides how fast the whole CPU can run.
 
 ---
 
-## 5. Single-Cycle vs. 3-Stage Pipeline: The Structural Trade-Off
+5. Single-Cycle vs 3-Stage Pipeline
 
-### The Single-Cycle Datapath (Mini-Takshaka)
-The processor completes an instruction's full lifecycle in **one uninterrupted clock period**.
+Single-cycle (Mini-Takshaka): one baker doing everything
 
-```text
-One Single Continuous Clock Period (Tclk = 20ns → Fmax = 50 MHz):
-├─────────────────────────────────────────────────────────────────────────────────────────────┤
-[ Fetch: IMEM ] ──► [ Decode ] ──► [ Reg Read ] ──► [ ALU AGU ] ──► [ Data RAM ] ──► [ Reg Commit ]
+The whole instruction — fetch, decode, read registers, ALU, memory, writeback — completes in one clock period:
+
+```
+one long clock period:
+[fetch]→[decode]→[reg read]→[ALU]→[data RAM]→[writeback]
 ```
 
-#### Real-Life Analogy: The Single-Operator Bakery
-* One baker mixes flour, kneads dough, bakes the loaf in the oven, packages it, and places it on the counter for a customer.
-* **Advantage:** No scheduling conflicts or order mix-ups. There are **zero pipeline hazards** because customer 2 never steps up until customer 1 takes their loaf.
-* **The Structural Flaw:** The baker is bound to the slowest order. If a customer only asks for a glass of water (`addi`), they must wait the full baking time of a multicourse pastry (`lw`) before the next customer is served.
-* **Electrical Reality:**
-  ```text
-  Clock Period (Tclk) >= T_PC + T_IMEM + T_Decode + T_RegRead + T_ALU + T_DMEM + T_WBMux + T_Setup
-  ```
-  Because signals must traverse all five operational blocks sequentially within one clock tick, the operating frequency is limited (Fmax ≈ 50 MHz).
+Real-life analogy: a single baker who takes an order, mixes, kneads, bakes, packages, and serves — before even looking at the next customer.
+
+- Good: zero hazards. Customer 2 never starts until customer 1 is fully done, so nothing can collide.
+- Bad: everyone waits for the slowest order. A customer asking for water (`addi`) waits the full time of a wedding cake (`lw`). And the clock must stretch to fit the slowest path:
+
+```
+clock period ≥ Tpc + Timem + Tdecode + Tregread + Talu + Tdmem + Tmux + Tsetup
+```
+
+That's why a single-cycle core is stuck near 50 MHz — one tick must cover everything.
+
+3-stage pipeline (Takshaka): the conveyor line
+
+Split the work into 3 stages, separated by registers that hold each instruction's data as it moves:
+
+```
+Stage F (fetch) →[R]→ Stage X (execute) →[R]→ Stage W (memory/writeback)
+```
+
+Three bakers in a row: one takes orders, one preps, one bakes and packages.
+
+```
+cycle 1: instr 1 fetch
+cycle 2: instr 2 fetch | instr 1 execute
+cycle 3: instr 3 fetch | instr 2 execute | instr 1 writeback
+```
+
+- Gain: each stage's delay is about ⅓ of the single-cycle path, so the clock runs 3–4× faster (200 MHz).
+- Cost: now 3 instructions are "in flight" at once, so we need hazard handling:
+  - W→X forwarding: pass results straight back so the next instruction doesn't wait.
+  - Branch prediction: guess branches so the fetch stage doesn't idle.
 
 ---
 
-### The 3-Stage Pipelined Datapath (Takshaka)
-Takshaka segments the datapath into three balanced, synchronous stages separated by clocked registers:
+6. The 5 Core Blocks of the Datapath
 
-```text
-   Stage F (Fetch)             Stage X (Execute)                 Stage W (Memory/WB)
-┌──────────────────┐         ┌─────────────────────────┐       ┌──────────────────────┐
-│ PC & Instruction │──►[R]──►│ Decoder, RegFile Read,  │──►[R]►│ Data Memory (SRAM)   │
-│ Memory Interface │         │ Execution ALU & AGU     │       │ & Writeback Commit   │
-└──────────────────┘         └─────────────────────────┘       └──────────────────────┘
-                        ▲                                 ▲
-                Pipeline Register                 Pipeline Register
+```
+1. Program Counter    2. Instruction    3. Register    4. ALU / AGU    5. Writeback
+   (address engine)      Decoder            File           (math)          Mux
+                         (control)                         (address gen)   (commit)
 ```
 
-#### Real-Life Analogy: The Conveyor Assembly Line
-* Baker 1 prepares ingredients (Fetch).
-* Baker 2 kneads and cuts (Execute).
-* Baker 3 monitors baking and packages (Memory/Writeback).
+Block 1 — Program Counter (PC)
+- A 32-bit register holding the address of the current instruction.
+- Normally steps forward: `next PC = PC + 4`.
+- On a taken branch, a mux feeds the calculated target instead:
 
-```text
-Cycle 1: [ Instruction 1: Fetch   ]
-Cycle 2: [ Instruction 2: Fetch   ]  [ Instruction 1: Execute ]
-Cycle 3: [ Instruction 3: Fetch   ]  [ Instruction 2: Execute ]  [ Instruction 1: Writeback ]
+```
+branch target ─┐
+               ├──► [ mux ] ──► PC register ──► imem_addr
+PC + 4 ────────┘
 ```
 
-* **The Gain:** Each stage's critical path is roughly one-third the length of the single-cycle design, allowing a **≈ 3x higher clock frequency (Fmax >= 200 MHz)**.
-* **The Challenge:** Multiple instructions in-flight require hazard control:
-  * **W -> X Forwarding Bypasses:** Hardware bypass wires route results straight from stage W's output back to stage X's input, eliminating load-use stalls.
-  * **Branch Prediction:** A 256-entry gshare branch history table predicts loop trajectories to prevent 1-cycle pipeline flushes.
+Block 2 — Instruction Decoder
+- Pure combinational logic that slices the 32-bit instruction into fields and raises control lines.
+
+```
+instruction bits → funct7 | rs2 | rs1 | funct3 | rd | opcode
+                     → picks the ALU operation (ADD/SUB/AND/OR...)
+                     → asserts reg_write (allow writing a register)
+                     → asserts dmem_we (allow writing memory)
+```
+
+Block 3 — Register File (x0–x31)
+- 32 registers, 32 bits each.
+- Two read ports: give it rs1/rs2 numbers, get the data out combinationally (no clock needed).
+- One write port: on the rising clock edge, if `reg_write` is on, `wb_data` lands in register `rd`.
+- x0 is special: hardwired to 0. Reads give 0, writes are ignored.
+
+Block 4 — ALU / AGU
+- The math engine. Input A = register data 1. Input B = a mux choosing between register data 2 (R-type) or the immediate (I-type).
+- AGU (Address Generation Unit): for loads/stores it computes the memory address:
+  `effective address = rs1 + immediate`
+
+Block 5 — Writeback Mux
+- A selector that picks what gets written back to the register file:
+
+```
+wb_data = (is_load) ? dmem_rdata : alu_result
+```
+
+Load → memory data; anything else → the ALU result.
 
 ---
 
-## 6. Detailed Hardware Anatomy of the 5 Core Blocks
+7. Full Walkthrough: `add x5, x6, x7` in hardware
 
-```text
-             ┌──────────────────────────────────────────────────────────────────────────┐
-             │                   COMPLETE DATAPATH HARDWARE TOPOLOGY                    │
-             └────────────────────────────────────┬─────────────────────────────────────┘
-                                                  │
-       ┌──────────────────┬───────────────────────┼───────────────────────┬──────────────────┐
-       ▼                  ▼                       ▼                       ▼                  ▼
- 1. Program         2. Instruction          3. Register             4. Arithmetic      5. Writeback
-    Counter (PC)       Decoder                 File (RF)               Logic Unit         Multiplexer
-    Address Engine     Control Logic           Storage Array           (ALU / AGU)        Commit Unit
+Instruction: `add x5, x6, x7`  (meaning: x5 = x6 + x7)
+Initial state: x6 = 10, x7 = 20, PC = 0x00001000
+
+Step 1 — Fetch
+- PC outputs address `0x00001000` onto the instruction-memory bus.
+- Memory returns the 32-bit machine code: `0x007302B3`.
+- In parallel, an adder computes PC + 4 = `0x00001004`.
+
+Step 2 — Decode
+Break the bits of `0x007302B3` into fields:
+
 ```
+funct7=0000000 | rs2=00111 (x7) | rs1=00110 (x6) | funct3=000 | rd=00101 (x5) | opcode=0110011 (R-type)
+```
+
+The decoder now knows: read x6 and x7, add them, write the result to x5. It sets ALU = ADD, `reg_write = 1`, `dmem_we = 0`.
+
+Step 3 — Register read
+- rs1 = 6 → register file outputs `10` on read port 1.
+- rs2 = 7 → register file outputs `20` on read port 2.
+
+Step 4 — Execute
+- The ALU input mux picks register data (not an immediate) for input B.
+- The adder computes `10 + 20 = 30` (`0x0000001E`).
+- Since it's not a branch, `branch_taken` stays 0, so PC will get PC + 4.
+
+Step 5 — Writeback
+- The writeback mux sees this is not a load, so it selects the ALU result: `30`.
+- Rising clock edge: `30` is latched into x5, and PC latches `0x00001004`.
+- Instruction done. Next cycle begins with the next instruction.
+
+That's the entire life of one instruction — five hops, one clock tick.
+
+---
+**8. Architectural Evolution: the summary table**
+|  | Mini-Takshaka (single-cycle) | Ibex (2-stage) | Takshaka (3-stage) |
+| --- | --- | --- | --- |
+| **Pipeline depth** | 1 (no latches between) | 2 | 3 (F→X→W) |
+| **CPI** | 1.0 | ~1.2 | ~1.0 |
+| **Clock speed** | Low (~50 MHz) | Moderate (~120 MHz) | High (~200+ MHz) |
+| **Hazards** | None (sequential execution) | Interlocked stalling | Full W→X forwarding, no load-use stalls |
+| **Branch penalty** | 0 (PC decided same cycle) | 1 cycle | 1 cycle flush (hidden by gshare predictor) |
+| **CoreMark/MHz** | Low (clock-limited) | ~1.43 | **2.68** |
+
+**Conclusion**
+Watching how signals, muxes, and flip-flops cooperate during one clock cycle makes the big ideas click: deeper pipelining buys speed, forwarding kills data hazards, and branch prediction pays for the pipeline's one weakness. Those three ideas are exactly what separates Mini-Takshaka from Takshaka.
 
 ---
 
-### Block 1: The Program Counter (PC)
-* **Function:** A 32-bit register holding the memory address of the instruction currently being executed.
-* **Sequential Stepping:** For linear program flow, an adder adds 4 bytes (advancing past a standard 32-bit instruction word):
-  ```text
-  Next PC = Current PC + 4
-  ```
-* **Branch Redirection:** For conditional branches (`beq`), an input multiplexer routes the calculated jump target address instead:
-
-```text
-                ┌──────────────────┐
- Branch Target ─►│                  │
- (Calculated)   │  Multiplexer     ├────► [ PC Register: 32 Flip-Flops ] ────► imem_addr [31:0]
-  PC + 4 Adder ─►│                  │                     │
-                └────────┬─────────┘                     │
-                         ▲                               ▼
-                   branch_taken                 +4 Incrementor Adder
-```
-
----
-
-### Block 2: The Instruction Decoder
-* **Function:** Pure combinational decoding that parses the 32-bit instruction word from instruction memory into hardware control lines.
-
-```text
-                         32-bit Instruction Word (from imem_rdata)
-                                            │
-    ┌────────────┬────────────┬─────────────┼────────────┬────────────┬────────────┐
-    ▼            ▼            ▼             ▼            ▼            ▼            ▼
- funct7         rs2          rs1         funct3          rd         opcode      imm_gen
-                        [11:7]        [6:0]      Sign-Ext
-```
-
-* **Control Assignments:**
-  * Configures the ALU operation (`ADD`, `SUB`, `AND`, `OR`, `SLT`) based on `funct3` and `funct7`.
-  * Asserts `reg_write` to allow results into the register file.
-  * Asserts `dmem_we` to allow writes into Data Memory.
-
----
-
-### Block 3: The Register File (`x0` to `x31`)
-* **Function:** Multi-ported static RAM array housing thirty-two 32-bit general-purpose registers.
-* **Interface:**
-  * **Two Read Ports:** Driven by index inputs `rs1` and `rs2`. Combinational multiplexer trees output data words on `rf_rdata1` and `rf_rdata2` without waiting for a clock edge.
-  * **One Synchronous Write Port:** Driven by destination index `rd` and data bus `wb_data`. Updates flip-flops on the rising clock edge if `reg_write == 1`.
-* **Hardwired Zero Register (`x0`):** Grounded to 0V (`32'h00000000`). Reads always yield 0, and writes targeting register 0 are ignored.
-
-```text
-                   ┌───────────────────────────────────────┐
-       rs1 [4:0] ─►│                                       │─► rf_rdata1 [31:0] (Combinational)
-       rs2 [4:0] ─►│          REGISTER FILE                │─► rf_rdata2 [31:0] (Combinational)
-        rd [4:0] ─►│       32 x 32-bit Registers           │
-   wb_data [31:0] ─►│      (x0 Hardwired Ground)            │
-   reg_write ───►│                                       │
-                   └───────────────────┬───────────────────┘
-                                       ▲
-                                  posedge clk (Synchronous Commit)
-```
-
----
-
-### Block 4: The Arithmetic Logic Unit (ALU / AGU)
-* **Function:** High-speed parallel arithmetic and bitwise logic engine.
-* **Dual Multiplexing:**
-  * Input A always receives `rf_rdata1`.
-  * Input B is selected by a multiplexer: receives `rf_rdata2` for register-register operations (`add`), or sign-extended immediate data (`imm`) for calculations like `addi` and memory offsets (`lw`/`sw`).
-* **Address Generation Unit (AGU):** For loads and stores, the ALU computes the target effective memory address:
-  ```text
-  Effective Address = Register(rs1) + Sign-Extended Immediate
-  ```
-
-```text
-  rf_rdata1 [31:0] ──────────────────────┐
-                                         ├──► ┌──────────────────────┐
-  rf_rdata2 [31:0] ──────┐               │    │                      │
-                         ├──► [ MUX ] ───┴──► │ 32-bit Parallel ALU  ├────► alu_result [31:0]
-  Immediate (imm) ───────┘                    │ (Adder/Sub/Logic)    │
-                                              │                      ├──► branch_taken (Condition Flag)
-  ALU Operation Selection Control ──────────► └──────────────────────┘
-  (From Instruction Decoder)
-```
-
----
-
-### Block 5: The Writeback Multiplexer (WB MUX)
-* **Function:** Output steering circuit that chooses which operational result commits to the register file.
-
-```text
-                         ┌───────────────────────┐
-  alu_result [31:0] ────►│     Writeback MUX     │
-  (Computation Result)   │                       ├────► wb_data [31:0] ────► Register File (rd)
-  dmem_rdata [31:0] ────►│  (Selected by is_lw)  │
-  (Data Memory Read)     └───────────┬───────────┘
-                                     ▲
-                           is_lw Control Strobe
-```
-
----
-
-## 7. Complete Hardware Walkthrough: Tracing `add x5, x6, x7`
-
-Consider an addition instruction executing in silicon:
-
-```asm
-add x5, x6, x7       # Architectural Intent: Register x5 <= Register x6 + Register x7
-```
-
-### Initial Register State
-* `Register x6` contains integer **`10`** (`0x0000000A`)
-* `Register x7` contains integer **`20`** (`0x00000014`)
-* Program Counter (`PC`) points to **`0x00001000`**
-
----
-
-### Step 1: Instruction Fetch (F)
-```text
-PC Register Value (0x00001000)
-       │
-       ▼ imem_addr
-┌─────────────────────────────────┐
-│     Instruction Memory (IMEM)   │
-└────────────────┬────────────────┘
-                 ▼ imem_rdata = 0x007302B3
-```
-1. The PC register outputs `0x00001000` onto the instruction address lines.
-2. The instruction memory decodes the address and presents the machine code word `0x007302B3` onto `imem_rdata`.
-3. Concurrently, an adder computes `PC + 4 = 0x00001004`.
-
----
-
-### Step 2: Instruction Decode & Field Demux (D)
-The binary word `0x007302B3` passes to the decoder:
-
-```text
-Binary Bitfield Breakdown:
-┌──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬──────────────┐
-│ funct7       │ rs2          │ rs1          │ funct3       │ rd           │ opcode       │
-│      │      │      │      │ [11:7]       │ [6:0]        │
-├──────────────┼──────────────┼──────────────┼──────────────┼──────────────┼──────────────┤
-│ 0000000      │ 00111        │ 00110        │ 000          │ 00101        │ 0110011      │
-│ (Base Math)  │ (Reg x7)     │ (Reg x6)     │ (ADD/SUB)    │ (Reg x5)     │ (R-Type)     │
-└──────────────┴──────────────┴──────────────┴──────────────┴──────────────┴──────────────┘
-```
-
-The decoder establishes the control lines:
-* Sets source indices `rs1 = 5'd6` and `rs2 = 5'd7`.
-* Sets destination index `rd = 5'd5`.
-* Selects the ALU ADD operation.
-* Asserts `reg_write = 1` and deasserts `dmem_we = 0`.
-
----
-
-### Step 3: Register File Read Operations
-Source addresses `rs1 = 6` and `rs2 = 7` route into the register file's read address ports:
-
-```text
-Register File Internal Memory Array
-┌─────────────────────────┐
-│ Entry 6  (x6): 0x0000000A ├──────────────► rf_rdata1 = 10
-│ Entry 7  (x7): 0x00000014 ├──────────────► rf_rdata2 = 20
-└─────────────────────────┘
-```
-The internal multiplexers resolve the addresses, placing `10` onto `rf_rdata1` and `20` onto `rf_rdata2`.
-
----
-
-### Step 4: Arithmetic Execution
-Because this is an R-type instruction, the ALU input multiplexer selects the register operand `rf_rdata2`:
-
-```text
-rf_rdata1 (10) ────────┐
-                       ├──► ┌────────────────────────┐
-rf_rdata2 (20) ────────┘    │  32-bit Carry-Lookahead │────► alu_result = 30 (0x0000001E)
-                            │  Adder Engine          │
-ALU Control (ADD) ────────► └────────────────────────┘
-```
-The ALU's carry-lookahead adder computes `10 + 20 = 30`.
-
----
-
-### Step 5: Writeback Multiplexing & Sequential State Retirement
-```text
-alu_result (30) ────► ┌─────────────────┐
-                      │  Writeback MUX  ├────► wb_data = 30 (0x0000001E)
-dmem_rdata (X)  ────► └────────┬────────┘
-                               ▲
-                         is_lw = 0
-```
-
-1. The Writeback MUX selects `alu_result` because this is an arithmetic calculation rather than a memory read.
-2. Value `30` travels across the writeback bus to destination write port `rd = 5` of the register file.
-3. **The Active Rising Clock Edge Arrives:**
-   * Register `x5` latches `30` into its flip-flops.
-   * The Program Counter latches `0x00001004`.
-
-The instruction completes, and the next instruction cycle begins.
-
----
-
-## 8. Summary Comparison: Architectural Evolution
-
-| Microarchitectural Metric | Mini-Takshaka (Single-Cycle Baseline) | Ibex Core (2-Stage Pipeline) | Takshaka RV32 (3-Stage Pipeline Target) |
-| :--- | :--- | :--- | :--- |
-| **Pipeline Depth** | 1 Contiguous Stage (No inter-stage latches) | 2 Stages (`IF` and `ID/EX`) | 3 Concurrent Stages (`F -> X -> W`) |
-| **Cycles Per Instruction (CPI)** | **1.0** (All instructions retire in 1 tick) | **~1.2** (Interlocked branch/load delays) | **~1.0** (Scalar pipelined throughput) |
-| **Operating Frequency (Fmax)** | **Low (~50 MHz)** (Full critical path) | **Moderate (~120 MHz)** (Balanced 2-stage) | **High (~200+ MHz)** (Isolated stages) |
-| **Hazard Resolution Scheme** | **Zero Hazards** (Sequential execution) | Interlocked structural stalling | **Full W -> X Forwarding** (Zero load-use stalls) |
-| **Branch Penalty** | **0 Cycles** (Combinational PC calculation) | 1 Cycle Stall Bubble | **1 Cycle Flush** (Mitigated by 256-entry gshare) |
-| **CoreMark Efficiency** | Low (Constrained by clock speed) | ~1.43 CoreMark/MHz | **2.68 CoreMark/MHz** |
-
-### Architectural Conclusion
-By analyzing how signals, multiplexers, and flip-flops interact during a single clock cycle, the trade-offs of deeper pipelining, forwarding bypasses, and branch prediction in advanced cores like **Takshaka** become clear.
+Study notes by Shubhi Rai. Companion to the Mini-Takshaka core notes and the Takshaka core study.
