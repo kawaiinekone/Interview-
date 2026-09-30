@@ -83,13 +83,14 @@ Initial State: x1 = 15 (0x0000000F), x2 = 25 (0x00000019), PC = 0x00000008
 
 Machine Instruction: 0x002081B3.
 
-+-----------------------------------------------------------------------------------------------------------------------+
+
+|+-----------------------------------------------------------------------------------------------------------------------+
 |                               CONCRETE HARDWARE PROPAGATION FOR: add x3, x1, x2                                       |
 +---------------------+---------------------------------------------------------+---------------------------------------+
-| Subsystem           | Hardware Action & Internal Signals                      | Physical Output Values                |
+| Subsystem           | Hardware Action & Internal Wires                        | Physical Output Values                |
 +---------------------+---------------------------------------------------------+---------------------------------------+
 | PC Register         | Outputs address onto memory bus                         | imem_addr = 0x00000008                |
-| PC Adder            | Dedicated adder calculates sequential next address      | pc_plus_4 = 0x0000000C                |
+| PC Adder            | Dedicated adder calculates sequential advance           | pc_plus_4 = 0x0000000C                |
 | Instruction Memory  | Combinational SRAM array performs word lookup           | imem_rdata = 0x002081B3               |
 | Instruction Decoder | Slices machine word into control and index bitfields    | opcode = 0110011, rd = 3,             |
 |                     |                                                         | rs1 = 1, rs2 = 2, funct3 = 000        |
