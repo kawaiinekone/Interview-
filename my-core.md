@@ -57,19 +57,20 @@ Because the clock period must accommodate the slowest instruction (`lw`), the cl
   $$\text{Effective Address} = \text{Register}(rs1) + \text{Immediate Offset}$$
 
 ### How are branches handled?
-* **Condition Evaluation:** A dedicated comparator in the ALU evaluates whether `rf_rdata1 == rf_rdata2` for `beq` instructions[cite: 3].
-* **Target Calculation:** A branch adder computes $\text{Branch Target} = \text{PC} + \text{imm\_b}$ in parallel[cite: 3].
-* **PC Update:** If the branch condition is true, `branch_taken` asserts, and the PC multiplexer loads `branch_target` on the next clock edge[cite: 3].
+* **Condition Evaluation:** A dedicated comparator in the ALU evaluates whether `rf_rdata1 == rf_rdata2` for `beq` instructions.
+* **Target Calculation:** A branch adder computes `Branch Target = PC + imm_b` in parallel.
+* **PC Update:** If the branch condition is true, `branch_taken` asserts, and the PC multiplexer loads `branch_target` on the next clock edge.
 
 ### How does the core communicate with data memory?
-* **Store Instructions (`sw`):** The effective address from the ALU drives `dmem_addr`, and data from `rf_rdata2` drives `dmem_wdata`[cite: 3]. The write-enable line `dmem_we` asserts, writing the 32-bit word into RAM on the clock edge[cite: 3].
-* **Load Instructions (`lw`):** The effective address drives `dmem_addr`, and the RAM returns the stored data onto `dmem_rdata`[cite: 3].
+* **Store Instructions (`sw`):** The effective address from the ALU drives `dmem_addr`, and data from `rf_rdata2` drives `dmem_wdata`. The write-enable line `dmem_we` asserts, writing the 32-bit word into RAM on the clock edge.
+* **Load Instructions (`lw`):** The effective address drives `dmem_addr`, and the RAM returns the stored data onto `dmem_rdata`.
 
 ### How is writeback handled?
-* **Writeback MUX:** A multiplexer chooses what commits to register `rd`
-  $$\text{wb\_data} = (\text{opcode} == \text{LW}) \; ? \; \text{dmem\_rdata} : \text{alu\_result}$$
-* **Retirement:** At the rising clock edge, `wb_data` commits into register `rd`, while the PC commits `pc_next`, retiring the instruction.
-
+* **Writeback MUX:** A multiplexer chooses what commits to register `rd`:
+  ```verilog
+  wb_data = (opcode == LW) ? dmem_rdata : alu_result;
+  
+Retirement: At the rising clock edge, wb_data commits into register rd, while the PC commits pc_next, retiring the instruction.
 ---
 
 ## 3. Deep Example Trace: The Lifecycle of `add x3, x1, x2`
