@@ -7,6 +7,7 @@ This guide explains the Takshaka processor core, made by OR5 Labs (open source, 
 ---
 
 1. What is Takshaka?
+<img width="1600" height="1035" alt="WhatsApp Image 2026-09-30 at 11 10 36 PM" src="https://github.com/user-attachments/assets/16906b51-1d4d-43ea-8bae-58095b54213d" />
 
 Takshaka is an open-source, 32-bit computer processor core developed by OR5 Labs under the open-source MIT license. It is designed around the modern RISC-V Instruction Set Architecture (ISA).
 
@@ -163,6 +164,7 @@ Takshaka implements RV32IMACB + Zicsr + Zcb + Zbc:
 8. Performance (CoreMark/MHz)
 
 CoreMark/MHz measures how much work a core does per clock cycle — so it compares architecture, not clock speed. All numbers come from Verilator RTL simulation (1,000 iterations; 100 for 3-stage cores).
+<img width="972" height="753" alt="WhatsApp Image 2026-09-30 at 11 11 10 PM (1)" src="https://github.com/user-attachments/assets/6346c899-899a-45f4-8fdc-76f23da16c2f" />
 
 ```
 Multicycle core (Agni):       1.43 CoreMark/MHz   (CPI > 2.5)
@@ -172,6 +174,7 @@ Out-of-order core (Chakra):   3.84 CoreMark/MHz   (superscalar, runs several at 
 ```
 
 Why Takshaka hits 2.68:
+<img width="649" height="618" alt="WhatsApp Image 2026-09-30 at 11 11 10 PM" src="https://github.com/user-attachments/assets/472fe2d6-668b-4c20-9044-f4fc277271bf" />
 
 1. Pipelining: 1 instruction retires per cycle instead of 1 per 3–4 cycles in a multicycle core.
 2. Cheap mispredictions: CoreMark code is full of branches and loops. A 5-stage core loses 2–3 cycles per wrong guess; Takshaka loses only 1, because branches resolve early (in X) and only F has to be flushed.
