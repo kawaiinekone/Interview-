@@ -126,6 +126,7 @@ Step 5 — Writeback (commit the result)
 - Rising clock edge:
   - x3 latches 40 (`0x00000028`) ✅
   - PC latches `0x0000000C` — pointing at the next instruction.
+![Concrete Hardware Propagation](./1790743607737.png)
 
 Done. One instruction, one clock tick, zero hazards. Follow-up instructions read x3 = 40 directly from the register file in the next cycle — that's the single-cycle.
 
