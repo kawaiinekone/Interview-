@@ -40,7 +40,7 @@ RTL (SystemVerilog / Verilog Hardware Description)
 The term identifies the atomic loop of synchronous digital design:
 
 ### 1. Register
-A physical register is a parallel bank of edge-triggered D flip-flops that holds binary voltages ($0\text{V}$ ground or nominal $V_{dd}$):
+A physical register is a parallel bank of edge-triggered D flip-flops that holds binary voltages (0V ground or nominal Vdd):
 ```text
 Register A = 10 (0x0000000A)
 Register B = 20 (0x00000014)
@@ -104,7 +104,7 @@ Input B (20) ───┘
 * Stores and stabilizes binary data across discrete intervals.
 * State transitions occur strictly when triggered by an active timing signal (the clock edge).
 * **Real-Life Example:** A photographer taking snapshots. While the shutter is closed, subjects move around unpredictably. When the shutter fires (the clock tick), the camera freezes the scene into a permanent frame until the next exposure.
-* **CPU Implementations:** Program Counter (PC), General-Purpose Registers (`x0–x31`), Pipeline Latches.
+* **CPU Implementations:** Program Counter (PC), General-Purpose Registers (`x0` through `x31`), Pipeline Latches.
 
 ```text
                      ┌─────────────────────────────┐
@@ -134,14 +134,14 @@ Digital processors rely on synchronous timing signals:
 ### The Metronome Analogy
 Musicians in an orchestra match tempo against a conductor's baton:
 * **During the interval between ticks:** Electrical signals ripple through silicon gates, switching between high and low voltages. Internal nets experience intermediate electrical noise and propagation delay.
-* **On the sharp rising edge:** Transistor gates settle into valid digital logic states ($0$ or $1$) across setup-time windows, and sequential storage elements latch the inputs.
+* **On the sharp rising edge:** Transistor gates settle into valid digital logic states (0 or 1) across setup-time windows, and sequential storage elements latch the inputs.
 
 ---
 
 ## 5. Single-Cycle vs. 3-Stage Pipeline: The Structural Trade-Off
 
 ### The Single-Cycle Datapath (Mini-Takshaka)
-The processor completes an instruction's full lifecycle in **one uninterrupted clock period**[span_0](start_span)[span_0](end_span).
+The processor completes an instruction's full lifecycle in **one uninterrupted clock period**.
 
 ```text
 One Single Continuous Clock Period (Tclk = 20ns → Fmax = 50 MHz):
@@ -151,16 +151,18 @@ One Single Continuous Clock Period (Tclk = 20ns → Fmax = 50 MHz):
 
 #### Real-Life Analogy: The Single-Operator Bakery
 * One baker mixes flour, kneads dough, bakes the loaf in the oven, packages it, and places it on the counter for a customer.
-* **Advantage:** No scheduling conflicts or order mix-ups. There are **zero pipeline hazards** because customer 2 never steps up until customer 1 takes their loaf[span_1](start_span)[span_1](end_span).
-* **The Structural Flaw:** The baker is bound to the slowest order. If a customer only asks for a glass of water (`addi`), they must wait the full baking time of a multicourse pastry (`lw`) before the next customer is served[span_2](start_span)[span_2](end_span).
+* **Advantage:** No scheduling conflicts or order mix-ups. There are **zero pipeline hazards** because customer 2 never steps up until customer 1 takes their loaf.
+* **The Structural Flaw:** The baker is bound to the slowest order. If a customer only asks for a glass of water (`addi`), they must wait the full baking time of a multicourse pastry (`lw`) before the next customer is served.
 * **Electrical Reality:**
-  $$\text{Clock Period } (T_{\text{clk}}) \ge T_{\text{PC}} + T_{\text{IMEM}} + T_{\text{Decode}} + T_{\text{RegRead}} + T_{\text{ALU}} + T_{\text{DMEM}} + T_{\text{WBMux}} + T_{\text{Setup}}$$
-  Because signals must traverse all five operational blocks sequentially within one clock tick, the operating frequency is limited ($F_{\max} \approx 50\text{ MHz}$)[span_3](start_span)[span_3](end_span).
+  ```text
+  Clock Period (Tclk) >= T_PC + T_IMEM + T_Decode + T_RegRead + T_ALU + T_DMEM + T_WBMux + T_Setup
+  ```
+  Because signals must traverse all five operational blocks sequentially within one clock tick, the operating frequency is limited (Fmax ≈ 50 MHz).
 
 ---
 
 ### The 3-Stage Pipelined Datapath (Takshaka)
-Takshaka segments the datapath into three balanced, synchronous stages separated by clocked registers[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span):
+Takshaka segments the datapath into three balanced, synchronous stages separated by clocked registers:
 
 ```text
    Stage F (Fetch)             Stage X (Execute)                 Stage W (Memory/WB)
@@ -173,9 +175,9 @@ Takshaka segments the datapath into three balanced, synchronous stages separated
 ```
 
 #### Real-Life Analogy: The Conveyor Assembly Line
-* Baker 1 prepares ingredients (Fetch)[span_6](start_span)[span_6](end_span).
-* Baker 2 kneads and cuts (Execute)[span_7](start_span)[span_7](end_span).
-* Baker 3 monitors baking and packages (Memory/Writeback)[span_8](start_span)[span_8](end_span).
+* Baker 1 prepares ingredients (Fetch).
+* Baker 2 kneads and cuts (Execute).
+* Baker 3 monitors baking and packages (Memory/Writeback).
 
 ```text
 Cycle 1: [ Instruction 1: Fetch   ]
@@ -183,10 +185,10 @@ Cycle 2: [ Instruction 2: Fetch   ]  [ Instruction 1: Execute ]
 Cycle 3: [ Instruction 3: Fetch   ]  [ Instruction 2: Execute ]  [ Instruction 1: Writeback ]
 ```
 
-* **The Gain:** Each stage's critical path is roughly one-third the length of the single-cycle design, allowing a **$\approx 3\times$ higher clock frequency ($F_{\max} \ge 200\text{ MHz}$)**[span_9](start_span)[span_9](end_span)[span_10](start_span)[span_10](end_span).
+* **The Gain:** Each stage's critical path is roughly one-third the length of the single-cycle design, allowing a **≈ 3x higher clock frequency (Fmax >= 200 MHz)**.
 * **The Challenge:** Multiple instructions in-flight require hazard control:
-  * **$W \to X$ Forwarding Bypasses:** Hardware bypass wires route results straight from stage W's output back to stage X's input, eliminating load-use stalls[span_11](start_span)[span_11](end_span).
-  * **Branch Prediction:** A 256-entry gshare branch history table predicts loop trajectories to prevent 1-cycle pipeline flushes[span_12](start_span)[span_12](end_span).
+  * **W -> X Forwarding Bypasses:** Hardware bypass wires route results straight from stage W's output back to stage X's input, eliminating load-use stalls.
+  * **Branch Prediction:** A 256-entry gshare branch history table predicts loop trajectories to prevent 1-cycle pipeline flushes.
 
 ---
 
@@ -207,10 +209,12 @@ Cycle 3: [ Instruction 3: Fetch   ]  [ Instruction 2: Execute ]  [ Instruction 1
 ---
 
 ### Block 1: The Program Counter (PC)
-* **Function:** A 32-bit register holding the memory address of the instruction currently being executed[span_13](start_span)[span_13](end_span)[span_14](start_span)[span_14](end_span).
-* **Sequential Stepping:** For linear program flow, an adder adds 4 bytes (advancing past a standard 32-bit instruction word)[span_15](start_span)[span_15](end_span)[span_16](start_span)[span_16](end_span):
-  $$\text{PC}_{\text{next}} = \text{PC} + 4$$
-* **Branch Redirection:** For conditional branches (`beq`), an input multiplexer routes the calculated jump target address instead[span_17](start_span)[span_17](end_span):
+* **Function:** A 32-bit register holding the memory address of the instruction currently being executed.
+* **Sequential Stepping:** For linear program flow, an adder adds 4 bytes (advancing past a standard 32-bit instruction word):
+  ```text
+  Next PC = Current PC + 4
+  ```
+* **Branch Redirection:** For conditional branches (`beq`), an input multiplexer routes the calculated jump target address instead:
 
 ```text
                 ┌──────────────────┐
@@ -225,7 +229,7 @@ Cycle 3: [ Instruction 3: Fetch   ]  [ Instruction 2: Execute ]  [ Instruction 1
 ---
 
 ### Block 2: The Instruction Decoder
-* **Function:** Pure combinational decoding that parses the 32-bit instruction word from instruction memory into hardware control lines[span_18](start_span)[span_18](end_span)[span_19](start_span)[span_19](end_span).
+* **Function:** Pure combinational decoding that parses the 32-bit instruction word from instruction memory into hardware control lines.
 
 ```text
                          32-bit Instruction Word (from imem_rdata)
@@ -237,18 +241,18 @@ Cycle 3: [ Instruction 3: Fetch   ]  [ Instruction 2: Execute ]  [ Instruction 1
 ```
 
 * **Control Assignments:**
-  * Configures the ALU operation (`ADD`, `SUB`, `AND`, `OR`, `SLT`) based on `funct3` and `funct7`[span_20](start_span)[span_20](end_span)[span_21](start_span)[span_21](end_span).
-  * Asserts `reg_write` to allow results into the register file[span_22](start_span)[span_22](end_span).
-  * Asserts `dmem_we` to allow writes into Data Memory[span_23](start_span)[span_23](end_span).
+  * Configures the ALU operation (`ADD`, `SUB`, `AND`, `OR`, `SLT`) based on `funct3` and `funct7`.
+  * Asserts `reg_write` to allow results into the register file.
+  * Asserts `dmem_we` to allow writes into Data Memory.
 
 ---
 
 ### Block 3: The Register File (`x0` to `x31`)
-* **Function:** Multi-ported static RAM array housing thirty-two 32-bit general-purpose registers[span_24](start_span)[span_24](end_span)[span_25](start_span)[span_25](end_span).
+* **Function:** Multi-ported static RAM array housing thirty-two 32-bit general-purpose registers.
 * **Interface:**
-  * **Two Read Ports:** Driven by index inputs `rs1` and `rs2`. Combinational multiplexer trees output data words on `rf_rdata1` and `rf_rdata2` without waiting for a clock edge[span_26](start_span)[span_26](end_span)[span_27](start_span)[span_27](end_span).
-  * **One Synchronous Write Port:** Driven by destination index `rd` and data bus `wb_data`. Updates flip-flops on the rising clock edge if `reg_write == 1`[span_28](start_span)[span_28](end_span)[span_29](start_span)[span_29](end_span)[span_30](start_span)[span_30](end_span).
-* **Hardwired Zero Register (`x0`):** Grounded to $0\text{V}$ (`32'h00000000`)[span_31](start_span)[span_31](end_span)[span_32](start_span)[span_32](end_span). Reads always yield 0, and writes targeting register `0` are ignored[span_33](start_span)[span_33](end_span)[span_34](start_span)[span_34](end_span).
+  * **Two Read Ports:** Driven by index inputs `rs1` and `rs2`. Combinational multiplexer trees output data words on `rf_rdata1` and `rf_rdata2` without waiting for a clock edge.
+  * **One Synchronous Write Port:** Driven by destination index `rd` and data bus `wb_data`. Updates flip-flops on the rising clock edge if `reg_write == 1`.
+* **Hardwired Zero Register (`x0`):** Grounded to 0V (`32'h00000000`). Reads always yield 0, and writes targeting register 0 are ignored.
 
 ```text
                    ┌───────────────────────────────────────┐
@@ -265,12 +269,14 @@ Cycle 3: [ Instruction 3: Fetch   ]  [ Instruction 2: Execute ]  [ Instruction 1
 ---
 
 ### Block 4: The Arithmetic Logic Unit (ALU / AGU)
-* **Function:** High-speed parallel arithmetic and bitwise logic engine[span_35](start_span)[span_35](end_span)[span_36](start_span)[span_36](end_span).
+* **Function:** High-speed parallel arithmetic and bitwise logic engine.
 * **Dual Multiplexing:**
-  * Input A always receives `rf_rdata1`[span_37](start_span)[span_37](end_span).
-  * Input B is selected by a multiplexer: receives `rf_rdata2` for register-register operations (`add`), or sign-extended immediate data (`imm`) for calculations like `addi` and memory offsets (`lw`/`sw`)[span_38](start_span)[span_38](end_span).
-* **Address Generation Unit (AGU):** For loads and stores, the ALU computes the target effective memory address[span_39](start_span)[span_39](end_span)[span_40](start_span)[span_40](end_span):
-  $$\text{Effective Address} = \text{Register}(rs1) + \text{Sign-Extended Immediate}$$
+  * Input A always receives `rf_rdata1`.
+  * Input B is selected by a multiplexer: receives `rf_rdata2` for register-register operations (`add`), or sign-extended immediate data (`imm`) for calculations like `addi` and memory offsets (`lw`/`sw`).
+* **Address Generation Unit (AGU):** For loads and stores, the ALU computes the target effective memory address:
+  ```text
+  Effective Address = Register(rs1) + Sign-Extended Immediate
+  ```
 
 ```text
   rf_rdata1 [31:0] ──────────────────────┐
@@ -286,7 +292,7 @@ Cycle 3: [ Instruction 3: Fetch   ]  [ Instruction 2: Execute ]  [ Instruction 1
 ---
 
 ### Block 5: The Writeback Multiplexer (WB MUX)
-* **Function:** Output steering circuit that chooses which operational result commits to the register file[span_41](start_span)[span_41](end_span)[span_42](start_span)[span_42](end_span)[span_43](start_span)[span_43](end_span).
+* **Function:** Output steering circuit that chooses which operational result commits to the register file.
 
 ```text
                          ┌───────────────────────┐
@@ -302,7 +308,7 @@ Cycle 3: [ Instruction 3: Fetch   ]  [ Instruction 2: Execute ]  [ Instruction 1
 
 ## 7. Complete Hardware Walkthrough: Tracing `add x5, x6, x7`
 
-Consider an addition instruction executing in silicon[span_44](start_span)[span_44](end_span):
+Consider an addition instruction executing in silicon:
 
 ```asm
 add x5, x6, x7       # Architectural Intent: Register x5 <= Register x6 + Register x7
@@ -325,14 +331,14 @@ PC Register Value (0x00001000)
 └────────────────┬────────────────┘
                  ▼ imem_rdata = 0x007302B3
 ```
-1. The PC register outputs `0x00001000` onto the instruction address lines[span_45](start_span)[span_45](end_span).
-2. The instruction memory decodes the address and presents the machine code word `0x007302B3` onto `imem_rdata`[span_46](start_span)[span_46](end_span).
-3. Concurrently, an adder computes $\text{PC} + 4 = \text{0x00001004}$[span_47](start_span)[span_47](end_span).
+1. The PC register outputs `0x00001000` onto the instruction address lines.
+2. The instruction memory decodes the address and presents the machine code word `0x007302B3` onto `imem_rdata`.
+3. Concurrently, an adder computes `PC + 4 = 0x00001004`.
 
 ---
 
 ### Step 2: Instruction Decode & Field Demux (D)
-The binary word `0x007302B3` passes to the decoder[span_48](start_span)[span_48](end_span):
+The binary word `0x007302B3` passes to the decoder:
 
 ```text
 Binary Bitfield Breakdown:
@@ -346,10 +352,10 @@ Binary Bitfield Breakdown:
 ```
 
 The decoder establishes the control lines:
-* Sets source indices `rs1 = 5'd6` and `rs2 = 5'd7`[span_49](start_span)[span_49](end_span).
-* Sets destination index `rd = 5'd5`[span_50](start_span)[span_50](end_span).
-* Selects the ALU ADD operation[span_51](start_span)[span_51](end_span)[span_52](start_span)[span_52](end_span).
-* Asserts `reg_write = 1` and deasserts `dmem_we = 0`[span_53](start_span)[span_53](end_span).
+* Sets source indices `rs1 = 5'd6` and `rs2 = 5'd7`.
+* Sets destination index `rd = 5'd5`.
+* Selects the ALU ADD operation.
+* Asserts `reg_write = 1` and deasserts `dmem_we = 0`.
 
 ---
 
@@ -363,7 +369,7 @@ Register File Internal Memory Array
 │ Entry 7  (x7): 0x00000014 ├──────────────► rf_rdata2 = 20
 └─────────────────────────┘
 ```
-The internal multiplexers resolve the addresses, placing `10` onto `rf_rdata1` and `20` onto `rf_rdata2`[span_54](start_span)[span_54](end_span)[span_55](start_span)[span_55](end_span).
+The internal multiplexers resolve the addresses, placing `10` onto `rf_rdata1` and `20` onto `rf_rdata2`.
 
 ---
 
@@ -377,7 +383,7 @@ rf_rdata2 (20) ────────┘    │  32-bit Carry-Lookahead │─
                             │  Adder Engine          │
 ALU Control (ADD) ────────► └────────────────────────┘
 ```
-The ALU's carry-lookahead adder computes $10 + 20 = 30$[span_56](start_span)[span_56](end_span).
+The ALU's carry-lookahead adder computes `10 + 20 = 30`.
 
 ---
 
@@ -390,26 +396,26 @@ dmem_rdata (X)  ────► └────────┬──────
                          is_lw = 0
 ```
 
-1. The Writeback MUX selects `alu_result` because this is an arithmetic calculation rather than a memory read[span_57](start_span)[span_57](end_span).
-2. Value `30` travels across the writeback bus to destination write port `rd = 5` of the register file[span_58](start_span)[span_58](end_span).
+1. The Writeback MUX selects `alu_result` because this is an arithmetic calculation rather than a memory read.
+2. Value `30` travels across the writeback bus to destination write port `rd = 5` of the register file.
 3. **The Active Rising Clock Edge Arrives:**
-   * Register `x5` latches `30` into its flip-flops[span_59](start_span)[span_59](end_span).
-   * The Program Counter latches `0x00001004`[span_60](start_span)[span_60](end_span).
+   * Register `x5` latches `30` into its flip-flops.
+   * The Program Counter latches `0x00001004`.
 
-The instruction completes, and the next instruction cycle begins[span_61](start_span)[span_61](end_span).
+The instruction completes, and the next instruction cycle begins.
 
 ---
 
 ## 8. Summary Comparison: Architectural Evolution
 
-| Microarchitectural Metric | Mini-Takshaka (Single-Cycle Baseline)[span_62](start_span)[span_62](end_span) | Ibex Core (2-Stage Pipeline)[span_63](start_span)[span_63](end_span) | Takshaka RV32 (3-Stage Pipeline Target)[span_64](start_span)[span_64](end_span) |
+| Microarchitectural Metric | Mini-Takshaka (Single-Cycle Baseline) | Ibex Core (2-Stage Pipeline) | Takshaka RV32 (3-Stage Pipeline Target) |
 | :--- | :--- | :--- | :--- |
-| **Pipeline Depth** | 1 Contiguous Stage (No inter-stage latches)[span_65](start_span)[span_65](end_span) | 2 Stages (`IF` and `ID/EX`)[span_66](start_span)[span_66](end_span) | 3 Concurrent Stages (`F -> X -> W`)[span_67](start_span)[span_67](end_span) |
-| **Cycles Per Instruction (CPI)** | **1.0** (All instructions retire in 1 tick)[span_68](start_span)[span_68](end_span) | **~1.2** (Interlocked branch/load delays)[span_69](start_span)[span_69](end_span) | **~1.0** (Scalar pipelined throughput)[span_70](start_span)[span_70](end_span) |
-| **Operating Frequency ($F_{\max}$)** | **Low (~50 MHz)** (Full critical path)[span_71](start_span)[span_71](end_span) | **Moderate (~120 MHz)** (Balanced 2-stage)[span_72](start_span)[span_72](end_span) | **High (~200+ MHz)** (Isolated stages)[span_73](start_span)[span_73](end_span)[span_74](start_span)[span_74](end_span) |
-| **Hazard Resolution Scheme** | **Zero Hazards** (Sequential execution)[span_75](start_span)[span_75](end_span) | Interlocked structural stalling[span_76](start_span)[span_76](end_span) | **Full $W \to X$ Forwarding** (Zero load-use stalls)[span_77](start_span)[span_77](end_span) |
-| **Branch Penalty** | **0 Cycles** (Combinational PC calculation)[span_78](start_span)[span_78](end_span) | 1 Cycle Stall Bubble[span_79](start_span)[span_79](end_span) | **1 Cycle Flush** (Mitigated by 256-entry gshare)[span_80](start_span)[span_80](end_span) |
-| **CoreMark Efficiency** | Low (Constrained by clock speed)[span_81](start_span)[span_81](end_span) | ~1.43 CoreMark/MHz[span_82](start_span)[span_82](end_span) | **2.68 CoreMark/MHz**[span_83](start_span)[span_83](end_span) |
+| **Pipeline Depth** | 1 Contiguous Stage (No inter-stage latches) | 2 Stages (`IF` and `ID/EX`) | 3 Concurrent Stages (`F -> X -> W`) |
+| **Cycles Per Instruction (CPI)** | **1.0** (All instructions retire in 1 tick) | **~1.2** (Interlocked branch/load delays) | **~1.0** (Scalar pipelined throughput) |
+| **Operating Frequency (Fmax)** | **Low (~50 MHz)** (Full critical path) | **Moderate (~120 MHz)** (Balanced 2-stage) | **High (~200+ MHz)** (Isolated stages) |
+| **Hazard Resolution Scheme** | **Zero Hazards** (Sequential execution) | Interlocked structural stalling | **Full W -> X Forwarding** (Zero load-use stalls) |
+| **Branch Penalty** | **0 Cycles** (Combinational PC calculation) | 1 Cycle Stall Bubble | **1 Cycle Flush** (Mitigated by 256-entry gshare) |
+| **CoreMark Efficiency** | Low (Constrained by clock speed) | ~1.43 CoreMark/MHz | **2.68 CoreMark/MHz** |
 
 ### Architectural Conclusion
-By analyzing how signals, multiplexers, and flip-flops interact during a single clock cycle, the trade-offs of deeper pipelining, forwarding bypasses, and branch prediction in advanced cores like **Takshaka** become clear[span_84](start_span)[span_84](end_span)[span_85](start_span)[span_85](end_span).
+By analyzing how signals, multiplexers, and flip-flops interact during a single clock cycle, the trade-offs of deeper pipelining, forwarding bypasses, and branch prediction in advanced cores like **Takshaka** become clear.
